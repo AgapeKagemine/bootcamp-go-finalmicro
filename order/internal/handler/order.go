@@ -27,13 +27,13 @@ func Order(ctx *gin.Context) {
 		return
 	}
 
-	writer := internalKafka.NewProducer("orchestrator-topic")
+	writer := internalKafka.NewProducer("topic-orchestrator")
 	defer writer.Close()
 
 	request := make(map[string]interface{})
 
 	for key, value := range rawRequest {
-		if key == "order_type" || key == "order_service" {
+		if key == "order_type" {
 			continue
 		}
 		request[key] = value
@@ -46,7 +46,7 @@ func Order(ctx *gin.Context) {
 		return
 	}
 
-	if request["order_type"] == nil {
+	if rawRequest["order_type"] == nil {
 		log.Error().Err(err).Msg("Invalid request payload")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid request payload"})
 		return

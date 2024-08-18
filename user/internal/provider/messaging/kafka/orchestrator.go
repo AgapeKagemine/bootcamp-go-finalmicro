@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"user/internal/domain/orchestrator"
@@ -16,6 +17,8 @@ import (
 const userService = "http://127.0.0.1:8090/user"
 
 func Start() {
+	log.Info().Msg("Starting user event listener...")
+
 	producer := NewProducer("topic-orchestrator")
 	reader := NewConsumer("topic-user-validate")
 
@@ -25,23 +28,23 @@ func Start() {
 	}()
 
 	for {
-		m, err := reader.ReadMessage(context.Background())
+		msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("Error reading message")
 			continue
 		}
 
 		var request orchestrator.Message
-		if err := json.Unmarshal(m.Value, &request); err != nil {
+		err = json.Unmarshal(msg.Value, &request)
+		if err != nil {
 			log.Error().Err(err).Msg("Error parsing message")
 		}
 
-		userRequest := user.Request{}
+		log.Info().Msg(fmt.Sprintf("Message received: %s\n", string(msg.Value)))
 
-		for k, v := range request.Body.(map[string]interface{}) {
-			if k == "user_id" {
-				userRequest.UserId = v.(string)
-			}
+		userRequest := user.Request{}
+		if err == nil {
+			userRequest.UserId = request.Body.(map[string]interface{})["user_id"].(string)
 		}
 
 		response := orchestrator.Message{
@@ -67,15 +70,12 @@ func Start() {
 			log.Error().Err(err).Msg("Error sending user request")
 		}
 
-		byteRes, err := io.ReadAll(res.Body)
-		if err != nil {
-			log.Error().Err(err).Msg("Error reading user response")
-		}
-
 		var userResponse user.Response
-		err = json.Unmarshal(byteRes, &userResponse)
-		if err != nil {
-			log.Error().Err(err).Msg("Error decoding user response")
+		if err == nil {
+			err = json.NewDecoder(res.Body).Decode(&userResponse)
+			if err == io.EOF {
+				err = nil
+			}
 		}
 
 		if err != nil {
@@ -93,7 +93,6 @@ func Start() {
 			log.Error().Err(err).Msg("Error marshalling response")
 		}
 
-		// Produce the response message to topic_0
 		err = producer.WriteMessages(context.Background(),
 			kafka.Message{
 				Value: payload,
@@ -102,7 +101,6 @@ func Start() {
 
 		if err != nil {
 			log.Error().Err(err).Msg("Error writing message to kafka")
-			continue
 		}
 	}
 }

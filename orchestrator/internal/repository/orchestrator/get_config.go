@@ -8,7 +8,10 @@ import (
 
 var findByTypeAndService = `---
 select
-	order_type, order_service, target_topic
+	order_type,
+	order_service, 
+	target_topic, 
+	rollback_topic
 from
 	route_config
 where
@@ -38,6 +41,7 @@ func (repo *OrchestratorRepositoryImpl) GetConfig(ctx context.Context) (config c
 		&config.OrderType,
 		&config.OrderService,
 		&config.Topic,
+		&config.RollbackTopic,
 	)
 
 	if err != nil {

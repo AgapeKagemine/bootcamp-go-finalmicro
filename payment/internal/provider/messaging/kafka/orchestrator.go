@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"payment/internal/domain/orchestrator"
@@ -16,6 +17,8 @@ import (
 const paymentService = "http://127.0.0.1:8090/balance"
 
 func Start() {
+	log.Info().Msg("Starting payment event listener...")
+
 	producer := NewProducer("topic-orchestrator")
 	reader := NewConsumer("topic-payment-deduct-balance")
 
@@ -25,16 +28,25 @@ func Start() {
 	}()
 
 	for {
-		m, err := reader.ReadMessage(context.Background())
+		msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("Error reading message")
 			continue
 		}
 
 		var request orchestrator.Message
-		if err := json.Unmarshal(m.Value, &request); err != nil {
+		err = json.Unmarshal(msg.Value, &request)
+		if err != nil {
 			log.Error().Err(err).Msg("Error parsing message")
-			continue
+		}
+
+		log.Info().Msg(fmt.Sprintf("Message received: %s\n", string(msg.Value)))
+
+		paymentRequest := payment.Request{}
+		paymentQuantity := 0.0
+		if err == nil {
+			paymentRequest.UserId = request.Body.(map[string]interface{})["user_id"].(string)
+			paymentQuantity = request.Body.(map[string]interface{})["quantity"].(float64)
 		}
 
 		response := orchestrator.Message{
@@ -50,12 +62,6 @@ func Start() {
 			Body: request.Body,
 		}
 
-		paymentRequest := payment.Request{}
-		paymentQuantity := 0.0
-
-		paymentRequest.UserId = request.Body.(map[string]interface{})["user_id"].(string)
-		paymentQuantity = request.Body.(map[string]interface{})["quantity"].(float64)
-
 		paymentPayload, err := json.Marshal(paymentRequest)
 		if err != nil {
 			log.Error().Err(err).Msg("Error marshalling payment request")
@@ -66,22 +72,12 @@ func Start() {
 			log.Error().Err(err).Msg("Error sending payment request")
 		}
 
-		byteRes, err := io.ReadAll(res.Body)
-		if err != nil {
-			log.Error().Err(err).Msg("Error reading payment response")
-		}
-
-		log.Info().Msg(string(byteRes))
-
 		var paymentResponse payment.Response
-		err = json.Unmarshal(byteRes, &paymentResponse)
-		if err != nil {
-			log.Error().Err(err).Msg("Error decoding payment response")
-		}
-
-		if paymentResponse.Message < paymentQuantity*2000 && err == nil {
-			response.Header.ResponseCode = http.StatusBadRequest
-			response.Header.ResponseMessage = http.StatusText(http.StatusBadRequest)
+		if err == nil {
+			err = json.NewDecoder(res.Body).Decode(&paymentResponse)
+			if err == io.EOF {
+				err = nil
+			}
 		}
 
 		if err != nil {
@@ -89,12 +85,16 @@ func Start() {
 			response.Header.ResponseMessage = http.StatusText(http.StatusInternalServerError)
 		}
 
+		if paymentResponse.Message < paymentQuantity*2000 && err == nil {
+			response.Header.ResponseCode = http.StatusBadRequest
+			response.Header.ResponseMessage = http.StatusText(http.StatusBadRequest)
+		}
+
 		payload, err := json.Marshal(response)
 		if err != nil {
 			log.Error().Err(err).Msg("Error marshalling response")
 		}
 
-		// Produce the response message to topic_0
 		err = producer.WriteMessages(context.Background(),
 			kafka.Message{
 				Value: payload,

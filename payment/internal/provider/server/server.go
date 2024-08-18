@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"os"
 	"os/signal"
 	"payment/internal/provider/messaging/kafka"
 
@@ -13,7 +12,7 @@ import (
 )
 
 func Run() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	go func() {
 		time.Sleep(2 * time.Second)

@@ -2,9 +2,9 @@ package kafka
 
 import "github.com/segmentio/kafka-go"
 
-func NewConsumer(topic string) *kafka.Reader {
+func (ok *OrchestratorKafka) NewConsumer(topic string) *kafka.Reader {
 	config := kafka.ReaderConfig{
-		Brokers:     []string{"localhost:29092"},
+		Brokers:     []string{ok.broker},
 		Topic:       topic,
 		GroupID:     "orchestrator-group",
 		MinBytes:    10e3,

@@ -1,7 +1,7 @@
 package main
 
-import "orchestrator/internal/provider/messaging/kafka"
+import "orchestrator/internal/provider/server"
 
 func main() {
-	kafka.Start()
+	server.Run()
 }

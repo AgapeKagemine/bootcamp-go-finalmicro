@@ -3,7 +3,6 @@ package server
 import (
 	"book/internal/provider/messaging/kafka"
 	"context"
-	"os"
 	"os/signal"
 
 	"syscall"
@@ -13,7 +12,7 @@ import (
 )
 
 func Run() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	// Start the Kafka consumer in the background
 	go func() {

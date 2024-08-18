@@ -2,9 +2,9 @@ package orchestrator
 
 import (
 	"context"
-	domain "orchestrator/internal/domain/orchestrator"
+	orchestratorDomain "orchestrator/internal/domain/orchestrator"
 	"orchestrator/internal/provider/messaging/kafka"
-	orchestratorRepo "orchestrator/internal/repository/orchestrator"
+	orchestratorUsecase "orchestrator/internal/usecase/orchestrator"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,13 +16,13 @@ type OrchestratorHandler interface {
 }
 
 type OrchestratorHandlerImpl struct {
-	orchestratorRepo  orchestratorRepo.OrchestratorRepository[context.Context, domain.Message, error]
-	orchestratorKafka kafka.OrchestratorKafka
+	orchestratorUsecase orchestratorUsecase.OrchestratorUsecase[context.Context, orchestratorDomain.Message, error]
+	orchestratorKafka   kafka.OrchestratorKafka
 }
 
-func NewOrchestratorHandler(orchestratorRepo orchestratorRepo.OrchestratorRepository[context.Context, domain.Message, error], orchestratorKafka kafka.OrchestratorKafka) OrchestratorHandler {
+func NewOrchestratorHandler(orchestratorUsecase orchestratorUsecase.OrchestratorUsecase[context.Context, orchestratorDomain.Message, error], orchestratorKafka kafka.OrchestratorKafka) OrchestratorHandler {
 	return &OrchestratorHandlerImpl{
-		orchestratorRepo:  orchestratorRepo,
-		orchestratorKafka: orchestratorKafka,
+		orchestratorUsecase: orchestratorUsecase,
+		orchestratorKafka:   orchestratorKafka,
 	}
 }

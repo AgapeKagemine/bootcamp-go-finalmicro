@@ -6,14 +6,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRoutes(h orchestrator.OrchestratorHandler) *gin.Engine {
-	route := gin.New()
+type Routes struct {
+	Routes *gin.Engine
+}
 
-	api := route.Group("/api")
-	transaction := api.Group("/transaction")
-	transaction.GET("/", h.FindAll)
-	transaction.GET("/failed", h.FindAllFailed)
-	transaction.PATCH("/retry", h.Retry)
+func NewRoutes(h orchestrator.OrchestratorHandler) *Routes {
+	route := &Routes{
+		Routes: gin.New(),
+	}
+
+	api := route.Routes.Group("/api")
+	route.TransactionRoutes(api, h)
 
 	return route
 }

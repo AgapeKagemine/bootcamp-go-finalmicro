@@ -1,6 +1,6 @@
 package config
 
-type Database struct {
+type DatabaseConfig struct {
 	Driver   string
 	Username string
 	Password uint

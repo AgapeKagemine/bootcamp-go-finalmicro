@@ -4,22 +4,23 @@ import (
 	"context"
 	"os/signal"
 	"user/internal/provider/messaging/kafka"
+	"user/internal/provider/usecase/user"
 
 	"syscall"
-	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
 func Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	// Start the Kafka consumer in the background
-	go func() {
-		// Add a short delay to allow the server to start
-		time.Sleep(2 * time.Second)
-		kafka.Start()
-	}()
+
+	k := kafka.NewOrchestratorKafka()
+	uc := user.NewUserUsecase(k)
+
+	go uc.Start()
+	go uc.ValidatePassword()
+	go uc.StatusCheck()
+	go uc.AccountDecision()
 
 	<-ctx.Done()
 	stop()

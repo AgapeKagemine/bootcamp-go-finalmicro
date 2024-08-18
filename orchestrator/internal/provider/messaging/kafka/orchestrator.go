@@ -1,25 +1,25 @@
 package kafka
 
-import (
-	"context"
-	orchestratorDomain "orchestrator/internal/domain/orchestrator"
-	orchestratorRepository "orchestrator/internal/repository/orchestrator"
-)
+import "github.com/segmentio/kafka-go"
+
+type OrchestratorKafka interface {
+	NewConsumer(string) *kafka.Reader
+	NewProducer(string) *kafka.Writer
+	GetMaxRetries() int
+}
+
+type OrchestratorKafkaImpl struct {
+	MaxRetries int
+	broker     string
+}
 
 const (
 	kafkaBroker = "localhost:29092"
 )
 
-type OrchestratorKafka struct {
-	repo       orchestratorRepository.OrchestratorRepository[context.Context, orchestratorDomain.Message, error]
-	maxRetries int
-	broker     string
-}
-
-func NewOrchestratorKafka(repo orchestratorRepository.OrchestratorRepository[context.Context, orchestratorDomain.Message, error]) *OrchestratorKafka {
-	return &OrchestratorKafka{
-		repo:       repo,
-		maxRetries: 3,
+func NewOrchestratorKafka(retries int) OrchestratorKafka {
+	return &OrchestratorKafkaImpl{
+		MaxRetries: retries,
 		broker:     kafkaBroker,
 	}
 }

@@ -25,7 +25,7 @@ func (h *OrchestratorHandlerImpl) FindAll(c *gin.Context) {
 		log.Info().Int("status_code", response.StstusCode).Msg(fmt.Sprintf("transaction (orchestrator) find all - %s", response.Message))
 	}()
 
-	trx, err := h.orchestratorRepo.GetAll(c)
+	trx, err := h.orchestratorUsecase.FindAll(c)
 	if err != nil {
 		response.StstusCode = http.StatusInternalServerError
 		response.Message = err.Error()

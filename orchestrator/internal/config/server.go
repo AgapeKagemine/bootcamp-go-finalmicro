@@ -1,6 +1,6 @@
 package config
 
-type Server struct {
+type ServerConfig struct {
 	Address string
 	Port    uint
 }

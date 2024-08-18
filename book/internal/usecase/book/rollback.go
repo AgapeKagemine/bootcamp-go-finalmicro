@@ -1,4 +1,4 @@
-package kafka
+package book
 
 import (
 	"book/internal/domain/orchestrator"
@@ -11,11 +11,12 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func Rollback() {
-	for {
-		reader := NewConsumer("topic-rollback-book")
-		producer := NewProducer("topic-orchestrator")
+func (uc *BookUsecase) Rollback() {
+	log.Info().Msg("Starting book rollback event listener...")
+	reader := uc.kafka.NewConsumer("topic-rollback-book")
+	defer reader.Close()
 
+	for {
 		msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("Error reading message")
@@ -48,6 +49,7 @@ func Rollback() {
 			log.Error().Err(err).Msg("Error marshalling response")
 		}
 
+		producer := uc.kafka.NewProducer("topic-orchestrator")
 		err = producer.WriteMessages(context.Background(),
 			kafka.Message{
 				Value: payload,
@@ -57,5 +59,6 @@ func Rollback() {
 		if err != nil {
 			log.Error().Err(err).Msg("Error writing message to kafka")
 		}
+		producer.Close()
 	}
 }

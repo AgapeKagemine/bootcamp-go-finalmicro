@@ -18,7 +18,7 @@ where
 	order_type = $1 and order_service = $2
 `
 
-func (repo *OrchestratorRepositoryImpl) GetConfig(ctx context.Context) (config config.Orchestrator, err error) {
+func (repo *OrchestratorRepositoryImpl) GetConfig(ctx context.Context) (config config.OrchestratorConfig, err error) {
 	findByTypeAndServiceStmt, err := repo.db.PrepareContext(ctx, findByTypeAndService)
 	if err != nil {
 		return config, err

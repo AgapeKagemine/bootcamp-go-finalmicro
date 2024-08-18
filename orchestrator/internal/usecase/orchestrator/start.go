@@ -1,4 +1,4 @@
-package kafka
+package orchestrator
 
 import (
 	"context"
@@ -13,10 +13,10 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func (ok *OrchestratorKafka) Start() {
+func (uc *OrchestratorUsecaseImpl) Start() {
 	log.Info().Msg("Starting orchestrator event listener...")
 
-	reader := ok.NewConsumer("topic-orchestrator")
+	reader := uc.orchestratorKafka.NewConsumer("topic-orchestrator")
 	defer reader.Close()
 
 	for {
@@ -39,7 +39,7 @@ func (ok *OrchestratorKafka) Start() {
 		ct := context.WithValue(context.Background(), domain.Key("type"), request.Header.OrderType)
 		ctx := context.WithValue(ct, domain.Key("service"), request.Header.OrderService)
 
-		orchestrate, err := ok.repo.GetConfig(ctx)
+		orchestrate, err := uc.orchestratorRepository.GetConfig(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg(fmt.Sprintf("Error getting orchestration config: %v\n", err))
 			request.Header.ResponseMessage = err.Error()
@@ -50,18 +50,18 @@ func (ok *OrchestratorKafka) Start() {
 		var responseBytes []byte
 
 		ctxs := context.WithValue(ctx, domain.Key("request"), request)
-		ok.repo.Save(ctxs)
+		uc.orchestratorRepository.Save(ctxs)
 
 		if request.Header.ResponseCode > http.StatusCreated {
-			if (request.Header.ResponseCode == http.StatusBadRequest || request.Header.Retries >= ok.maxRetries) && request.Header.ResponseMessage != "Manual Retry" {
+			if (request.Header.ResponseCode == http.StatusBadRequest || request.Header.Retries >= uc.orchestratorKafka.GetMaxRetries()) && request.Header.ResponseMessage != "Manual Retry" {
 				if orchestrate.RollbackTopic != "FINISH" {
-					writer = ok.NewProducer("topic-orchestrator")
+					writer = uc.orchestratorKafka.NewProducer("topic-orchestrator")
 					orchestrate.Topic = "orchestrator"
 					request.Header.OrderService = orchestrate.RollbackTopic
 					request.Header.ResponseCode = http.StatusOK
 					request.Header.ResponseMessage = "ROLLBACK"
 				} else {
-					writer = ok.NewProducer("topic-retry-step")
+					writer = uc.orchestratorKafka.NewProducer("topic-retry-step")
 					orchestrate.Topic = "retry-step"
 				}
 			} else {
@@ -72,7 +72,7 @@ func (ok *OrchestratorKafka) Start() {
 				// Simple backoff
 				time.Sleep(time.Duration(request.Header.Retries) * time.Second)
 
-				writer = ok.NewProducer("topic-" + request.Header.OrderService)
+				writer = uc.orchestratorKafka.NewProducer("topic-" + request.Header.OrderService)
 				orchestrate.Topic = request.Header.OrderService
 			}
 		} else if request.Header.OrderService == "FINISH" {
@@ -80,7 +80,7 @@ func (ok *OrchestratorKafka) Start() {
 			request.Header.ResponseMessage = http.StatusText(http.StatusOK)
 			log.Info().Msg(fmt.Sprintf("Order completed: %s\n", string(message.Value)))
 		} else {
-			writer = ok.NewProducer("topic-" + orchestrate.Topic)
+			writer = uc.orchestratorKafka.NewProducer("topic-" + orchestrate.Topic)
 		}
 
 		if orchestrate.Topic != "FINISH" || request.Header.ResponseCode > http.StatusOK {

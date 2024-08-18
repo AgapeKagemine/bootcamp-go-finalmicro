@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"orchestrator/internal/domain"
+
 	"orchestrator/internal/domain/handler"
 	"orchestrator/internal/domain/orchestrator"
 	"time"
@@ -42,7 +43,7 @@ func (h *OrchestratorHandlerImpl) Retry(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), domain.Key("request"), requestTransaction)
 
-	trueTransaction, err := h.orchestratorRepo.GetByIdFailed(ctx)
+	trueTransaction, err := h.orchestratorUsecase.FindByIdFailed(ctx)
 	if err != nil {
 		response.StstusCode = http.StatusInternalServerError
 		response.Message = err.Error()
@@ -69,7 +70,6 @@ func (h *OrchestratorHandlerImpl) Retry(c *gin.Context) {
 	}
 
 	writer := h.orchestratorKafka.NewProducer("topic-orchestrator")
-
 	err = writer.WriteMessages(context.Background(),
 		kafka.Message{
 			Value: payload,

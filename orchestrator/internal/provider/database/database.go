@@ -9,7 +9,7 @@ import (
 )
 
 func NewDB() (db *sql.DB, err error) {
-	config := config.Database{
+	config := config.DatabaseConfig{
 		Driver:   "pgx",
 		Username: "training",
 		Password: 1234,

@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"fmt"
 	"net/http"
+
 	"orchestrator/internal/domain/handler"
 	"orchestrator/internal/domain/orchestrator"
 
@@ -25,7 +26,7 @@ func (h *OrchestratorHandlerImpl) FindAllFailed(c *gin.Context) {
 		log.Info().Int("status_code", response.StstusCode).Msg(fmt.Sprintf("transaction (orchestrator) find all failed - %s", response.Message))
 	}()
 
-	trx, err := h.orchestratorRepo.GetAllFailed(c)
+	trx, err := h.orchestratorUsecase.FindAllFailed(c)
 	if err != nil {
 		response.StstusCode = http.StatusInternalServerError
 		response.Message = err.Error()

@@ -1,6 +1,6 @@
 package config
 
-type Orchestrator struct {
+type OrchestratorConfig struct {
 	OrderType     string
 	OrderService  string
 	Topic         string

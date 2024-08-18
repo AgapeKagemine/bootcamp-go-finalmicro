@@ -1,4 +1,4 @@
-package kafka
+package orchestrator
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 )
 
 // Should Dead Letter Message... but I don't know what to put
-func (ok *OrchestratorKafka) ConsumeFailedTransaction() {
+func (uc *OrchestratorUsecaseImpl) ConsumeFailedTransaction() {
 	log.Info().Msg("Starting retry step consumer...")
-	reader := ok.NewConsumer("topic-retry-step")
+	reader := uc.orchestratorKafka.NewConsumer("topic-retry-step")
 	defer reader.Close()
 
 	for {

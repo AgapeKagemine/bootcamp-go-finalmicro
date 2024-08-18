@@ -2,7 +2,7 @@ package kafka
 
 import "github.com/segmentio/kafka-go"
 
-func (ok *OrchestratorKafka) NewConsumer(topic string) *kafka.Reader {
+func (ok *OrchestratorKafkaImpl) NewConsumer(topic string) *kafka.Reader {
 	config := kafka.ReaderConfig{
 		Brokers:     []string{ok.broker},
 		Topic:       topic,

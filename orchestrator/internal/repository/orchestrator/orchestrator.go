@@ -8,7 +8,7 @@ import (
 )
 
 type OrchestratorRepository[C context.Context, T orchestrator.Message, E error] interface {
-	GetConfig(C) (config.Orchestrator, E)
+	GetConfig(C) (config.OrchestratorConfig, E)
 	Save(C) E
 	GetAll(C) ([]T, E)
 	GetAllFailed(C) ([]T, E)

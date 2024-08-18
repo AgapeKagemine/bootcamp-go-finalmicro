@@ -10,6 +10,7 @@ import (
 	"orchestrator/internal/provider/messaging/kafka"
 	"orchestrator/internal/provider/routes"
 	orchestratorRepository "orchestrator/internal/repository/orchestrator"
+	orchestratorUsecase "orchestrator/internal/usecase/orchestrator"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,8 +20,9 @@ import (
 )
 
 const (
-	address = "127.0.0.1"
-	port    = 8061
+	address    = "127.0.0.1"
+	port       = 8061
+	maxRetries = 3
 )
 
 func Run() {
@@ -33,19 +35,23 @@ func Run() {
 	}
 
 	repo := orchestratorRepository.NewOrchestratorRepository(db)
-	k := kafka.NewOrchestratorKafka(repo)
-	go k.Start()
-	go k.ConsumeFailedTransaction()
-	h := orchestratorHandler.NewOrchestratorHandler(repo, *k)
+	k := kafka.NewOrchestratorKafka(maxRetries)
+	uc := orchestratorUsecase.NewOrchestratorUsecase(repo, k)
+	h := orchestratorHandler.NewOrchestratorHandler(uc, k)
 
-	serverConfig := config.Server{
+	go uc.Start()
+	go uc.ConsumeFailedTransaction()
+
+	serverConfig := config.ServerConfig{
 		Address: address,
 		Port:    port,
 	}
 
+	route := routes.NewRoutes(h)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", serverConfig.Address, serverConfig.Port),
-		Handler: routes.NewRoutes(h),
+		Handler: route.Routes,
 	}
 
 	go func() {
